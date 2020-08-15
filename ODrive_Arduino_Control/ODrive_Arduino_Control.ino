@@ -1,21 +1,20 @@
 
-#include <SoftwareSerial.h>
 #include "ODriveArduino.h"
 
 // Printing with stream operator
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
-// Serial to the ODrive
-SoftwareSerial odrive_serial(8, 9); //RX (ODrive TX), TX (ODrive RX)
-// Note: you must also connect GND on ODrive to GND on Arduino!
-
 // ODrive object
-ODriveArduino odrive(odrive_serial);
+ODriveArduino odrive(Serial2);
 
 void setup() {
+  // Serial to the ODrive
   // ODrive uses 115200 baud
-  odrive_serial.begin(115200);
+  Serial2.begin(115200);
+
+  //HC05 Bluetooth module uses 9600 baud
+  Serial3.begin(9600);
 
   // Serial to PC
   Serial.begin(115200);
@@ -28,8 +27,8 @@ void setup() {
   // You can of course set them different if you want.
   // See the documentation or play around in odrivetool to see the available parameters
   for (int axis = 0; axis < 2; ++axis) {
-    odrive_serial << "w axis" << axis << ".controller.config.vel_limit " << 4000.0f << '\n';
-    odrive_serial << "w axis" << axis << ".motor.config.current_lim " << 10.0f << '\n';
+    Serial2 << "w axis" << axis << ".controller.config.vel_limit " << 10000.0f << '\n';
+    Serial2 << "w axis" << axis << ".motor.config.current_lim " << 10.0f << '\n';
     // This ends up writing something like "w axis0.motor.config.current_lim 10.0\n"
   }
 
@@ -111,7 +110,7 @@ void loop() {
 
     // Read bus voltage
     if (c == 'b') {
-      odrive_serial << "r vbus_voltage\n";
+      Serial2 << "r vbus_voltage\n";
       delay(500);
       Serial << "Vbus voltage: " << odrive.readFloat() << '\n';
     }
@@ -122,11 +121,80 @@ void loop() {
       unsigned long start = millis();
       while(millis() - start < duration) {
         for (int motor = 0; motor < 2; ++motor) {
-          odrive_serial << "r axis" << motor << ".encoder.pos_estimate\n";
+          Serial2 << "r axis" << motor << ".encoder.pos_estimate\n";
           Serial << odrive.readFloat() << '\t';
         }
         Serial << '\n';
       }
+    }
+  }
+
+  if(Serial3.available()){
+    delay(10);
+    char c = Serial3.read();
+
+    // Run calibration sequence
+    if (c == '0' || c == '1') {
+      int motornum = c-'0';
+      int requested_state;
+
+      Serial3 << "CAL MOT ";
+
+      requested_state = ODriveArduino::AXIS_STATE_MOTOR_CALIBRATION;
+      //Serial << "Axis" << c << ": Requesting state " << requested_state << '\n';
+      odrive.run_state(motornum, requested_state, true);
+
+      requested_state = ODriveArduino::AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
+      //Serial << "Axis" << c << ": Requesting state " << requested_state << '\n';
+      odrive.run_state(motornum, requested_state, true);
+
+      requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
+      //Serial << "Axis" << c << ": Requesting state " << requested_state << '\n';
+      odrive.run_state(motornum, requested_state, false); // don't wait
+    }
+
+    // Current mode
+    if (c == 'c') {
+      //Serial << "Current control mode: ";
+      char d = Serial3.read();
+      String command = "";
+      if(isWhitespace(d))
+      {
+        if(Serial3.available()) d = Serial3.read();
+        command = command + char(d);
+        while(!isWhitespace(d) && Serial3.available())
+        {
+          d = Serial3.read();
+          command = command + char(d);
+        }
+        float current = command.toFloat();
+        if((current > 10.0) || (current < -10.0)) Serial3 << "OC ERROR";
+        else
+        {
+          Serial3 << "CURRENT ";
+          odrive.SetCurrent(0, current);
+        }
+      }
+      else
+      {
+        Serial3 << "CM ERROR";
+      }
+    }
+
+    // Stop motor
+    if (c == 's') {
+       Serial3 << "MOT STOP";
+      int requested_state;
+      requested_state = ODriveArduino::AXIS_STATE_IDLE;
+      odrive.run_state(0, requested_state, false);
+    }
+
+    // Loop control
+    if (c == 'l') {
+      Serial3 << "LOOP CON";
+      int requested_state;
+      requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
+      odrive.run_state(0, requested_state, false); // don't wait
     }
   }
 }
