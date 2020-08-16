@@ -5,6 +5,8 @@
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
+float pos_offset = 0.0;
+
 // ODrive object
 ODriveArduino odrive(Serial2);
 
@@ -38,12 +40,14 @@ void setup() {
   Serial.println("Send the character 'c' to enter in current control mode");
   Serial.println("Send the character 's' to stop motor");
   Serial.println("Send the character 'b' to read bus voltage");
-  Serial.println("Send the character 'p' to read motor positions in a 10s loop");
+  Serial.println("Send the character 'p' to read linear position");
+  Serial.println("Send the character 'e' to set current linear position to 0");
 }
 
 void loop() {
 
   if (Serial.available()) {
+    delay(10);
     char c = Serial.read();
 
     // Run calibration sequence
@@ -108,24 +112,25 @@ void loop() {
       Serial.println("Running loop control");
     }
 
+    // Encoder offset calibration
+    if (c == 'e') {
+      int requested_state;
+      pos_offset = 2*PI*2*(odrive.GetPosition(0)/4000);
+      Serial.println("Set home position");
+    }
+
     // Read bus voltage
     if (c == 'b') {
       Serial2 << "r vbus_voltage\n";
       delay(500);
-      Serial << "Vbus voltage: " << odrive.readFloat() << '\n';
+      Serial << "Vbus voltage: " << odrive.readFloat() << "V" << '\n';
     }
 
-    // print motor positions in a 10s loop
+    // print motor position
     if (c == 'p') {
-      static const unsigned long duration = 10000;
-      unsigned long start = millis();
-      while(millis() - start < duration) {
-        for (int motor = 0; motor < 2; ++motor) {
-          Serial2 << "r axis" << motor << ".encoder.pos_estimate\n";
-          Serial << odrive.readFloat() << '\t';
-        }
-        Serial << '\n';
-      }
+      //odrive.GetPosition(0);
+      float encoder_position = 2*PI*2*(odrive.GetPosition(0)/4000) - pos_offset; //2cm radio, 2pi = 4000 counts
+      Serial << "Linear position: " << encoder_position << "cm" << '\n';
     }
   }
 
