@@ -7,6 +7,12 @@ template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(a
 
 float pos_offset = 0.0;
 
+float linearPosition = 0.0;
+float linearHist = 2.0;
+float rampControlThreshold = 5.0;
+float current = 0.0;
+float lastCurrentValue = 0.0;
+
 // ODrive object
 ODriveArduino odrive(Serial2);
 
@@ -82,12 +88,12 @@ void loop() {
           d = Serial.read();
           command = command + char(d);
         }
-        float current = command.toFloat();
+        current = command.toFloat();
         if((current > 10.0) || (current < -10.0)) Serial << "Overcurrent error" << '\n';
         else
         {
           Serial << "Current = " << current << "A" << '\n';
-          odrive.SetCurrent(0, current);
+          //odrive.SetCurrent(0, current);
         }
       }
       else
@@ -128,9 +134,7 @@ void loop() {
 
     // print motor position
     if (c == 'p') {
-      //odrive.GetPosition(0);
-      float encoder_position = 2*PI*2*(odrive.GetPosition(0)/4000) - pos_offset; //2cm radio, 2pi = 4000 counts
-      Serial << "Linear position: " << encoder_position << "cm" << '\n';
+      Serial << "Linear position: " << linearPosition << "cm" << '\n';
     }
   }
 
@@ -172,12 +176,12 @@ void loop() {
           d = Serial3.read();
           command = command + char(d);
         }
-        float current = command.toFloat();
+        current = command.toFloat();
         if((current > 10.0) || (current < -10.0)) Serial3 << "OC ERROR";
         else
         {
           Serial3 << "CURRENT ";
-          odrive.SetCurrent(0, current);
+          //odrive.SetCurrent(0, current);
         }
       }
       else
@@ -201,5 +205,36 @@ void loop() {
       requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
       odrive.run_state(0, requested_state, false); // don't wait
     }
+  }
+
+  linearPosition = 2*PI*2*(odrive.GetPosition(0)/4000) - pos_offset; //2cm radio, 2pi = 4000 counts
+  currentControl(currentControlValue(linearPosition, current), lastCurrentValue);
+
+  delay(10);
+}
+
+float currentControlValue(float linearPosition, float current)
+{
+  if(linearPosition > (0.0 + linearHist)) return 0.0;
+  else if(linearPosition < (0.0 - linearHist))
+  {
+    float calCurrent;
+    if (linearPosition > (0.0 - linearHist - rampControlThreshold))
+    {
+      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
+      //Serial.println(calCurrent);
+    } 
+    else calCurrent = current;
+    return calCurrent;
+  }
+}
+
+void currentControl(float current, float lastCurrent)
+{
+  if(current != lastCurrent) 
+  {
+    odrive.SetCurrent(0, current);
+    //Serial.println(current);
+    lastCurrentValue = current;
   }
 }
