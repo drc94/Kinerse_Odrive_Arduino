@@ -12,6 +12,7 @@ float linearHist = 2.0;
 float rampControlThreshold = 5.0;
 float current = 0.0;
 float lastCurrentValue = 0.0;
+#define current_limit 15.0
 
 // ODrive object
 ODriveArduino odrive(Serial2);
@@ -35,8 +36,8 @@ void setup() {
   // You can of course set them different if you want.
   // See the documentation or play around in odrivetool to see the available parameters
   for (int axis = 0; axis < 2; ++axis) {
-    Serial2 << "w axis" << axis << ".controller.config.vel_limit " << 10000.0f << '\n';
-    Serial2 << "w axis" << axis << ".motor.config.current_lim " << 10.0f << '\n';
+    Serial2 << "w axis" << axis << ".controller.config.vel_limit " << 20000.0f << '\n';
+    Serial2 << "w axis" << axis << ".motor.config.current_lim " << 20.0f << '\n';
     // This ends up writing something like "w axis0.motor.config.current_lim 10.0\n"
   }
 
@@ -89,7 +90,7 @@ void loop() {
           command = command + char(d);
         }
         current = command.toFloat();
-        if((current > 10.0) || (current < -10.0)) Serial << "Overcurrent error" << '\n';
+        if((current > current_limit) || (current < 0.0)) Serial << "Overcurrent error" << '\n';
         else
         {
           Serial << "Current = " << current << "A" << '\n';
@@ -177,7 +178,7 @@ void loop() {
           command = command + char(d);
         }
         current = command.toFloat();
-        if((current > 10.0) || (current < -10.0)) Serial3 << "OC ERROR";
+        if((current > current_limit) || (current < 0.0)) Serial3 << "OC ERROR";
         else
         {
           Serial3 << "CURRENT ";
