@@ -14,6 +14,8 @@ float current = 0.0;
 float lastCurrentValue = 0.0;
 #define current_limit 15.0
 
+int motorMode = 0;
+
 // ODrive object
 ODriveArduino odrive(Serial2);
 
@@ -49,6 +51,7 @@ void setup() {
   Serial.println("Send the character 'b' to read bus voltage");
   Serial.println("Send the character 'p' to read linear position");
   Serial.println("Send the character 'e' to set current linear position to 0");
+  Serial.println("Send the character 'h' followed by the mode to set the haptics test");
 }
 
 void loop() {
@@ -80,6 +83,7 @@ void loop() {
       Serial << "Current control mode: ";
       char d = Serial.read();
       String command = "";
+      motorMode = 0;
       if(isWhitespace(d))
       {
         if(Serial.available()) d = Serial.read();
@@ -137,6 +141,36 @@ void loop() {
     if (c == 'p') {
       Serial << "Linear position: " << linearPosition << "cm" << '\n';
     }
+
+    // Loop control
+    if (c == 'h') {
+      Serial << "Haptic test: " << '\n';
+      char d = Serial.read();
+      String command = "";
+      if(isWhitespace(d))
+      {
+        if(Serial.available()) d = Serial.read();
+        command = command + char(d);
+        while(!isWhitespace(d) && Serial.available())
+        {
+          d = Serial.read();
+          command = command + char(d);
+        }
+        
+        if(command.toInt() > 3) Serial << "Command error" << '\n';
+        else
+        {
+          motorMode  = command.toInt();
+          if(motorMode == 1) Serial << "BOXING MODE" << '\n';
+          if(motorMode == 2) Serial << "VIBRATION MODE 1" << '\n';
+          if(motorMode == 3) Serial << "VIBRATION MODE 2" << '\n';
+        }
+      }
+      else
+      {
+        Serial << "Command error" << '\n';
+      }
+    }
   }
 
   if(Serial3.available()){
@@ -168,6 +202,7 @@ void loop() {
       //Serial << "Current control mode: ";
       char d = Serial3.read();
       String command = "";
+      motorMode = 0;
       if(isWhitespace(d))
       {
         if(Serial3.available()) d = Serial3.read();
@@ -209,7 +244,18 @@ void loop() {
   }
 
   linearPosition = 2*PI*2*(odrive.GetPosition(0)/4000) - pos_offset; //2cm radio, 2pi = 4000 counts
-  currentControl(currentControlValue(linearPosition, current), lastCurrentValue);
+  if(motorMode == 1) {
+    currentControl(currentHapticsBox(linearPosition), lastCurrentValue);
+  }
+  else if(motorMode == 2){
+    currentControl(currentHapticsVibration(linearPosition, lastCurrentValue, 0), lastCurrentValue);
+  }  
+  else if(motorMode == 3){
+    currentControl(currentHapticsVibration(linearPosition, lastCurrentValue, 1), lastCurrentValue);
+  }
+  else {
+    currentControl(currentControlValue(linearPosition, lastCurrentValue), lastCurrentValue);
+  }
 
   delay(10);
 }
@@ -237,5 +283,70 @@ void currentControl(float current, float lastCurrent)
     odrive.SetCurrent(0, current);
     //Serial.println(current);
     lastCurrentValue = current;
+  }
+}
+
+float currentHapticsBox(float linearPosition)
+{
+  float current = 2.0;
+  float threshold = -25.0;
+  if(linearPosition > (0.0 + linearHist)) return 0.0;
+  else if(linearPosition < (0.0 - linearHist))
+  {
+    float calCurrent;
+    if (linearPosition > (0.0 - linearHist - rampControlThreshold))
+    {
+      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
+      //Serial.println(calCurrent);
+    } 
+    else 
+    {
+      //Serial << linearPosition << ' ' << threshold << '\n';
+      if (linearPosition > threshold) 
+      {
+        calCurrent = 2.0;
+      }
+      else
+      {
+        calCurrent = 12.0;
+      }
+    }
+    return calCurrent;
+  }
+}
+
+float currentHapticsVibration(float linearPosition, float lastCurrent, int mode)
+{
+  float current = 2.0;
+  if(linearPosition > (0.0 + linearHist)) return 0.0;
+  else if(linearPosition < (0.0 - linearHist))
+  {
+    float calCurrent;
+    if (linearPosition > (0.0 - linearHist - rampControlThreshold))
+    {
+      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
+      //Serial.println(calCurrent);
+    } 
+    else 
+    {
+      //Serial << linearPosition << ' ' << threshold << '\n';
+      if (lastCurrent == 2.0) 
+      {
+        if(mode == 1) {
+          delay(50);
+          calCurrent = 6.0;
+        }
+        else calCurrent = 8.0;
+      }
+      else
+      {
+        if(mode == 1) {
+          delay(50);
+          calCurrent = 2.0;
+        }
+        else calCurrent = 2.0;
+      }
+    }
+    return calCurrent;
   }
 }
