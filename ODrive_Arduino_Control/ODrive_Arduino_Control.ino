@@ -329,19 +329,21 @@ float currentHapticsVibration(float linearPosition, float lastCurrent, int mode)
     } 
     else 
     {
+      int dly = (int)((-(linearPosition + linearHist + rampControlThreshold) /50.0)*100.0);
+      //Serial << dly << '\n';
       //Serial << linearPosition << ' ' << threshold << '\n';
       if (lastCurrent == 2.0) 
       {
         if(mode == 1) {
-          delay(50);
-          calCurrent = 6.0;
+          delay(dly);
+          calCurrent = 10.0;
         }
         else calCurrent = 8.0;
       }
       else
       {
         if(mode == 1) {
-          delay(50);
+          delay(dly);
           calCurrent = 2.0;
         }
         else calCurrent = 2.0;
