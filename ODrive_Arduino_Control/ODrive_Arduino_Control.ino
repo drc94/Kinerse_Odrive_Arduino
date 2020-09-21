@@ -254,7 +254,7 @@ void loop() {
     currentControl(currentHapticsVibration(linearPosition, lastCurrentValue, 1), lastCurrentValue);
   }
   else {
-    currentControl(currentControlValue(linearPosition, lastCurrentValue), lastCurrentValue);
+    currentControl(currentControlValue(linearPosition, current), lastCurrentValue);
   }
 
   delay(10);
@@ -272,6 +272,7 @@ float currentControlValue(float linearPosition, float current)
       //Serial.println(calCurrent);
     } 
     else calCurrent = current;
+    //Serial << calCurrent << '\n';
     return calCurrent;
   }
 }
@@ -308,7 +309,7 @@ float currentHapticsBox(float linearPosition)
       }
       else
       {
-        calCurrent = 12.0;
+        calCurrent = 10.0;
       }
     }
     return calCurrent;
