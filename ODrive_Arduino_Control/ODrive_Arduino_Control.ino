@@ -12,6 +12,7 @@ float linearHist = 2.0;
 float rampControlThreshold = 5.0;
 float current = 0.0;
 float lastCurrentValue = 0.0;
+bool boxFlag = false;
 #define current_limit 15.0
 
 int motorMode = 0;
@@ -142,7 +143,7 @@ void loop() {
       Serial << "Linear position: " << linearPosition << "cm" << '\n';
     }
 
-    // Loop control
+    // Haptics mode
     if (c == 'h') {
       Serial << "Haptic test: " << '\n';
       char d = Serial.read();
@@ -241,6 +242,35 @@ void loop() {
       requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
       odrive.run_state(0, requested_state, false); // don't wait
     }
+
+     // Haptics mode
+    if (c == 'h') {
+      char d = Serial3.read();
+      String command = "";
+      if(isWhitespace(d))
+      {
+        if(Serial3.available()) d = Serial3.read();
+        command = command + char(d);
+        while(!isWhitespace(d) && Serial3.available())
+        {
+          d = Serial3.read();
+          command = command + char(d);
+        }
+        
+        if(command.toInt() > 3) Serial3 << "CM ERROR" << '\n';
+        else
+        {
+          motorMode  = command.toInt();
+          if(motorMode == 1) Serial3 << "BOXING  ";
+          if(motorMode == 2) Serial3 << "VIBRAT 1";
+          if(motorMode == 3) Serial3 << "VIBRAT 2";
+        }
+      }
+      else
+      {
+        Serial3 << "CM ERROR";
+      }
+    }
   }
 
   linearPosition = 2*PI*2*(odrive.GetPosition(0)/4000) - pos_offset; //2cm radio, 2pi = 4000 counts
@@ -257,7 +287,7 @@ void loop() {
     currentControl(currentControlValue(linearPosition, current), lastCurrentValue);
   }
 
-  delay(10);
+  delay(5);
 }
 
 float currentControlValue(float linearPosition, float current)
@@ -303,13 +333,23 @@ float currentHapticsBox(float linearPosition)
     else 
     {
       //Serial << linearPosition << ' ' << threshold << '\n';
-      if (linearPosition > threshold) 
+      if (linearPosition > threshold)
       {
         calCurrent = 2.0;
+        boxFlag = false;
       }
       else
       {
-        calCurrent = 10.0;
+        if(boxFlag == false)
+        {
+          calCurrent = 12.0;
+          boxFlag = true;
+        }
+        else
+        {
+          calCurrent = 2.0;
+          delay(50);
+        }
       }
     }
     return calCurrent;
