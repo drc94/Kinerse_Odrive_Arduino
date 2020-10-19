@@ -339,7 +339,7 @@ void currentControl(float current, float lastCurrent, int motorNum)
 float currentHapticsBox(float linearPosition, int motorNum)
 {
   float current = 2.0;
-  float threshold = -25.0;
+  float threshold = -110.0;
   if(linearPosition > (0.0 + linearHist)) return 0.0;
   else if(linearPosition < (0.0 - linearHist))
   {
