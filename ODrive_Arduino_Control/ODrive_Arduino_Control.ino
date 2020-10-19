@@ -5,14 +5,14 @@
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
-float pos_offset = 0.0;
+float pos_offset[2] = {0.0, 0.0};
 
-float linearPosition = 0.0;
+float linearPosition[2] = {0.0, 0.0};
 float linearHist = 2.0;
 float rampControlThreshold = 5.0;
-float current = 0.0;
-float lastCurrentValue = 0.0;
-bool boxFlag = false;
+float current[2] = {0.0, 0.0};
+float lastCurrentValue[2] = {0.0, 0.0};
+bool boxFlag[2] = {false, false};
 #define current_limit 15.0
 
 int motorMode = 0;
@@ -94,11 +94,12 @@ void loop() {
           d = Serial.read();
           command = command + char(d);
         }
-        current = command.toFloat();
-        if((current > current_limit) || (current < 0.0)) Serial << "Overcurrent error" << '\n';
+        current[0] = command.toFloat();
+        current[1] = current[0];
+        if((current[0] > current_limit) || (current[0] < 0.0)) Serial << "Overcurrent error" << '\n';
         else
         {
-          Serial << "Current = " << current << "A" << '\n';
+          Serial << "Current = " << current[0] << "A" << '\n';
           //odrive.SetCurrent(0, current);
         }
       }
@@ -113,6 +114,8 @@ void loop() {
       int requested_state;
       requested_state = ODriveArduino::AXIS_STATE_IDLE;
       odrive.run_state(0, requested_state, false);
+      delay(100);
+      odrive.run_state(1, requested_state, false);
       Serial.println("Control stopped");
     }
 
@@ -121,13 +124,17 @@ void loop() {
       int requested_state;
       requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
       odrive.run_state(0, requested_state, false); // don't wait
+      delay(100);
+      odrive.run_state(1, requested_state, false); // don't wait
       Serial.println("Running loop control");
     }
 
     // Encoder offset calibration
     if (c == 'e') {
       int requested_state;
-      pos_offset = 2*PI*2*(odrive.GetPosition(0)/4000);
+      pos_offset[0] = 2*PI*2*(odrive.GetPosition(0)/4000);
+      delay(100);
+      pos_offset[1] = 2*PI*2*(odrive.GetPosition(1)/4000);
       Serial.println("Set home position");
     }
 
@@ -140,7 +147,9 @@ void loop() {
 
     // print motor position
     if (c == 'p') {
-      Serial << "Linear position: " << linearPosition << "cm" << '\n';
+      Serial << "Linear position M0: " << linearPosition[0] << "cm" << '\n';
+      delay(100);
+      Serial << "Linear position M1: " << linearPosition[1] << "cm" << '\n';
     }
 
     // Haptics mode
@@ -213,8 +222,9 @@ void loop() {
           d = Serial3.read();
           command = command + char(d);
         }
-        current = command.toFloat();
-        if((current > current_limit) || (current < 0.0)) Serial3 << "OC ERROR";
+        current[0] = command.toFloat();
+        current[1] = current[0];
+        if((current[0] > current_limit) || (current[0] < 0.0)) Serial3 << "OC ERROR";
         else
         {
           Serial3 << "CURRENT ";
@@ -233,6 +243,8 @@ void loop() {
       int requested_state;
       requested_state = ODriveArduino::AXIS_STATE_IDLE;
       odrive.run_state(0, requested_state, false);
+      delay(100);
+      odrive.run_state(1, requested_state, false);      
     }
 
     // Loop control
@@ -241,6 +253,8 @@ void loop() {
       int requested_state;
       requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
       odrive.run_state(0, requested_state, false); // don't wait
+      delay(100);
+      odrive.run_state(1, requested_state, false); // don't wait
     }
 
      // Haptics mode
@@ -273,18 +287,23 @@ void loop() {
     }
   }
 
-  linearPosition = 2*PI*2*(odrive.GetPosition(0)/4000) - pos_offset; //2cm radio, 2pi = 4000 counts
+  linearPosition[0] = 2*PI*2*(odrive.GetPosition(0)/4000) - pos_offset[0]; //2cm radio, 2pi = 4000 counts
+  linearPosition[1] = 2*PI*2*(odrive.GetPosition(1)/4000) - pos_offset[1]; //2cm radio, 2pi = 4000 counts
   if(motorMode == 1) {
-    currentControl(currentHapticsBox(linearPosition), lastCurrentValue);
+    currentControl(currentHapticsBox(linearPosition[0],0), lastCurrentValue[0],0);
+    currentControl(currentHapticsBox(linearPosition[1],1), lastCurrentValue[1],1);
   }
   else if(motorMode == 2){
-    currentControl(currentHapticsVibration(linearPosition, lastCurrentValue, 0), lastCurrentValue);
+    currentControl(currentHapticsVibration(linearPosition[0], lastCurrentValue[0], 0), lastCurrentValue[0],0);
+    currentControl(currentHapticsVibration(linearPosition[1], lastCurrentValue[1], 0), lastCurrentValue[1],1);
   }  
   else if(motorMode == 3){
-    currentControl(currentHapticsVibration(linearPosition, lastCurrentValue, 1), lastCurrentValue);
+    currentControl(currentHapticsVibration(linearPosition[0], lastCurrentValue[0], 1), lastCurrentValue[0],0);
+    currentControl(currentHapticsVibration(linearPosition[1], lastCurrentValue[1], 1), lastCurrentValue[1],1);
   }
   else {
-    currentControl(currentControlValue(linearPosition, current), lastCurrentValue);
+    currentControl(currentControlValue(linearPosition[0], current[0]), lastCurrentValue[0],0);
+    currentControl(currentControlValue(linearPosition[1], current[1]), lastCurrentValue[1],1);
   }
 
   delay(5);
@@ -307,17 +326,17 @@ float currentControlValue(float linearPosition, float current)
   }
 }
 
-void currentControl(float current, float lastCurrent)
+void currentControl(float current, float lastCurrent, int motorNum)
 {
   if(current != lastCurrent) 
   {
-    odrive.SetCurrent(0, current);
+    odrive.SetCurrent(motorNum, current);
     //Serial.println(current);
-    lastCurrentValue = current;
+    lastCurrentValue[motorNum] = current;
   }
 }
 
-float currentHapticsBox(float linearPosition)
+float currentHapticsBox(float linearPosition, int motorNum)
 {
   float current = 2.0;
   float threshold = -25.0;
@@ -336,14 +355,14 @@ float currentHapticsBox(float linearPosition)
       if (linearPosition > threshold)
       {
         calCurrent = 2.0;
-        boxFlag = false;
+        boxFlag[motorNum] = false;
       }
       else
       {
-        if(boxFlag == false)
+        if(boxFlag[motorNum] == false)
         {
           calCurrent = 12.0;
-          boxFlag = true;
+          boxFlag[motorNum] = true;
         }
         else
         {
