@@ -1,21 +1,19 @@
-
 #include "ODriveArduino.h"
 
 // Printing with stream operator
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
-float pos_offset[2] = {0.0, 0.0};
+#define linearHist 2.0            //Histéresis para evitar rebotes (cm)
+#define rampControlThreshold 5.0  //Umbral inicial para aplicar un control de rampa (inicio suave)
+#define currentLimit 20.0         //Límite de corriente
 
-float linearPosition[2] = {0.0, 0.0};
-float linearHist = 2.0;
-float rampControlThreshold = 5.0;
-float current[2] = {0.0, 0.0};
-float lastCurrentValue[2] = {0.0, 0.0};
+float pos_offset[2] = {0.0, 0.0};       //Offset para corregir la posicion inicial
+float linearPosition[2] = {0.0, 0.0};   //Posición lineal (cm)
+float current[2] = {0.0, 0.0};          //Corriente (A)
+float lastCurrentValue[2] = {0.0, 0.0}; //Último valor de corriente enviado al controlador (A)
 bool boxFlag[2] = {false, false};
-#define current_limit 15.0
-
-int motorMode = 0;
+int motorMode = 0;                      //Modo del motor
 
 // ODrive object
 ODriveArduino odrive(Serial2);
@@ -43,6 +41,9 @@ void setup() {
     Serial2 << "w axis" << axis << ".motor.config.current_lim " << 20.0f << '\n';
     // This ends up writing something like "w axis0.motor.config.current_lim 10.0\n"
   }
+
+  delay(3000);  //Espera para empezar a calibrar el motor automáticamente
+  initCalibration(odrive); //Secuencia de calibración de motores
 
   Serial.println("Ready!");
   Serial.println("Send the character '0' or '1' to calibrate respective motor (you must do this before you can command movement)");
@@ -96,7 +97,7 @@ void loop() {
         }
         current[0] = command.toFloat();
         current[1] = current[0];
-        if((current[0] > current_limit) || (current[0] < 0.0)) Serial << "Overcurrent error" << '\n';
+        if((current[0] > currentLimit) || (current[0] < 0.0)) Serial << "Overcurrent error" << '\n';
         else
         {
           Serial << "Current = " << current[0] << "A" << '\n';
@@ -224,7 +225,7 @@ void loop() {
         }
         current[0] = command.toFloat();
         current[1] = current[0];
-        if((current[0] > current_limit) || (current[0] < 0.0)) Serial3 << "OC ERROR";
+        if((current[0] > currentLimit) || (current[0] < 0.0)) Serial3 << "OC ERROR";
         else
         {
           Serial3 << "CURRENT ";

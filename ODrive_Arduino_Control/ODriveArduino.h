@@ -1,4 +1,3 @@
-
 #ifndef ODriveArduino_h
 #define ODriveArduino_h
 
@@ -43,5 +42,7 @@ private:
 
     Stream& serial_;
 };
+
+void initCalibration(ODriveArduino odrive);
 
 #endif //ODriveArduino_h

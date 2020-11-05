@@ -1,4 +1,3 @@
-
 #include "Arduino.h"
 #include "ODriveArduino.h"
 
@@ -51,8 +50,8 @@ float ODriveArduino::readFloat() {
 }
 
 float ODriveArduino::GetVelocity(int motor_number){
-	serial_<< "r axis" << motor_number << ".encoder.vel_estimate\n";
-	return ODriveArduino::readFloat();
+  serial_<< "r axis" << motor_number << ".encoder.vel_estimate\n";
+  return ODriveArduino::readFloat();
 }
 
 float ODriveArduino::GetPosition(int motor_number){
@@ -93,4 +92,18 @@ String ODriveArduino::readString() {
         str += c;
     }
     return str;
+}
+
+void initCalibration(ODriveArduino odrive){
+   int requested_state = ODriveArduino::AXIS_STATE_MOTOR_CALIBRATION;
+   odrive.run_state(0, requested_state, true);
+   odrive.run_state(1, requested_state, true);
+
+   requested_state = ODriveArduino::AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
+   odrive.run_state(0, requested_state, true);
+   odrive.run_state(1, requested_state, true);
+/*
+   requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;  // No es necesario para la calibración
+   odrive.run_state(0, requested_state, false); // don't wait
+   odrive.run_state(1, requested_state, false); // don't wait*/
 }
