@@ -8,7 +8,7 @@ template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(a
 #define rampControlThreshold 5.0  //Umbral inicial para aplicar un control de rampa (inicio suave)
 #define currentLimit 20.0         //Límite de corriente
 
-float pos_offset[2] = {0.0, 0.0};       //Offset para corregir la posicion inicial
+float posOffset[2] = {0.0, 0.0};       //Offset para corregir la posicion inicial
 float linearPosition[2] = {0.0, 0.0};   //Posición lineal (cm)
 float current[2] = {0.0, 0.0};          //Corriente (A)
 float lastCurrentValue[2] = {0.0, 0.0}; //Último valor de corriente enviado al controlador (A)
@@ -42,8 +42,15 @@ void setup() {
     // This ends up writing something like "w axis0.motor.config.current_lim 10.0\n"
   }
 
-  delay(3000);  //Espera para empezar a calibrar el motor automáticamente
+  delay(2000);  //Espera para empezar a calibrar el motor automáticamente
   initCalibration(odrive); //Secuencia de calibración de motores
+  initPosition(odrive, 0); //Inicializa posición motor 0 
+  //initPosition(odrive, 1); //Inicializa posición motor 1
+  for (int axis = 0; axis < 2; ++axis) {
+    Serial2 << "w axis" << axis << ".controller.config.vel_limit " << 20000.0f << '\n';
+    Serial2 << "w axis" << axis << ".motor.config.current_lim " << 20.0f << '\n';
+    // This ends up writing something like "w axis0.motor.config.current_lim 10.0\n"
+  }
 
   Serial.println("Ready!");
   Serial.println("Send the character '0' or '1' to calibrate respective motor (you must do this before you can command movement)");
@@ -133,9 +140,9 @@ void loop() {
     // Encoder offset calibration
     if (c == 'e') {
       int requested_state;
-      pos_offset[0] = 2*PI*2*(odrive.GetPosition(0)/4000);
+      posOffset[0] = 2*PI*2*(odrive.GetPosition(0)/4000);
       delay(100);
-      pos_offset[1] = 2*PI*2*(odrive.GetPosition(1)/4000);
+      posOffset[1] = 2*PI*2*(odrive.GetPosition(1)/4000);
       Serial.println("Set home position");
     }
 
@@ -288,8 +295,8 @@ void loop() {
     }
   }
 
-  linearPosition[0] = 2*PI*2*(odrive.GetPosition(0)/4000) - pos_offset[0]; //2cm radio, 2pi = 4000 counts
-  linearPosition[1] = 2*PI*2*(odrive.GetPosition(1)/4000) - pos_offset[1]; //2cm radio, 2pi = 4000 counts
+  linearPosition[0] = 2*PI*2*(odrive.GetPosition(0)/4000) - posOffset[0]; //2cm radio, 2pi = 4000 counts
+  linearPosition[1] = 2*PI*2*(odrive.GetPosition(1)/4000) - posOffset[1]; //2cm radio, 2pi = 4000 counts
   if(motorMode == 1) {
     currentControl(currentHapticsBox(linearPosition[0],0), lastCurrentValue[0],0);
     currentControl(currentHapticsBox(linearPosition[1],1), lastCurrentValue[1],1);

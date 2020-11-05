@@ -72,7 +72,6 @@ bool ODriveArduino::run_state(int axis, int requested_state, bool wait) {
             serial_ << "r axis" << axis << ".current_state\n";
         } while (readInt() != AXIS_STATE_IDLE && --timeout_ctr > 0);
     }
-
     return timeout_ctr > 0;
 }
 
@@ -106,4 +105,21 @@ void initCalibration(ODriveArduino odrive){
    requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;  // No es necesario para la calibración
    odrive.run_state(0, requested_state, false); // don't wait
    odrive.run_state(1, requested_state, false); // don't wait*/
+}
+
+float initPosition(ODriveArduino odrive, int motor){
+  float pos_offset = 0;
+  int requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
+  odrive.run_state(motor, requested_state, false); // don't wait
+  odrive.SetVelocity(motor, 2000.0, 10.0);
+  delay(500);
+  while(odrive.GetVelocity(motor) > 100.0);
+  pos_offset = 2*PI*2*(odrive.GetPosition(motor)/4000);  
+  delay(500);
+  odrive.SetCurrent(motor, 0.0);
+  odrive.SetVelocity(motor, 20000.0);
+  delay(500);
+  requested_state = ODriveArduino::AXIS_STATE_IDLE;
+  odrive.run_state(motor, requested_state, false);
+  return pos_offset;
 }
