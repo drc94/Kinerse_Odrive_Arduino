@@ -1,18 +1,16 @@
 #include "ODriveArduino.h"
+#include "ControlModes.h"
 
 // Printing with stream operator
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
-#define linearHist 2.0            //Histéresis para evitar rebotes (cm)
-#define rampControlThreshold 5.0  //Umbral inicial para aplicar un control de rampa (inicio suave)
 #define currentLimit 20.0         //Límite de corriente
 
 float posOffset[2] = {0.0, 0.0};       //Offset para corregir la posicion inicial
 float linearPosition[2] = {0.0, 0.0};   //Posición lineal (cm)
 float current[2] = {0.0, 0.0};          //Corriente (A)
 float lastCurrentValue[2] = {0.0, 0.0}; //Último valor de corriente enviado al controlador (A)
-bool boxFlag[2] = {false, false};
 int motorMode = 0;                      //Modo del motor
 
 // ODrive object
@@ -64,7 +62,6 @@ void setup() {
 }
 
 void loop() {
-
   if (Serial.available()) {
     delay(10);
     char c = Serial.read();
@@ -317,23 +314,6 @@ void loop() {
   delay(5);
 }
 
-float currentControlValue(float linearPosition, float current)
-{
-  if(linearPosition > (0.0 + linearHist)) return 0.0;
-  else if(linearPosition < (0.0 - linearHist))
-  {
-    float calCurrent;
-    if (linearPosition > (0.0 - linearHist - rampControlThreshold))
-    {
-      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
-      //Serial.println(calCurrent);
-    } 
-    else calCurrent = current;
-    //Serial << calCurrent << '\n';
-    return calCurrent;
-  }
-}
-
 void currentControl(float current, float lastCurrent, int motorNum)
 {
   if(current != lastCurrent) 
@@ -341,82 +321,5 @@ void currentControl(float current, float lastCurrent, int motorNum)
     odrive.SetCurrent(motorNum, current);
     //Serial.println(current);
     lastCurrentValue[motorNum] = current;
-  }
-}
-
-float currentHapticsBox(float linearPosition, int motorNum)
-{
-  float current = 2.0;
-  float threshold = -110.0;
-  if(linearPosition > (0.0 + linearHist)) return 0.0;
-  else if(linearPosition < (0.0 - linearHist))
-  {
-    float calCurrent;
-    if (linearPosition > (0.0 - linearHist - rampControlThreshold))
-    {
-      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
-      //Serial.println(calCurrent);
-    } 
-    else 
-    {
-      //Serial << linearPosition << ' ' << threshold << '\n';
-      if (linearPosition > threshold)
-      {
-        calCurrent = 2.0;
-        boxFlag[motorNum] = false;
-      }
-      else
-      {
-        if(boxFlag[motorNum] == false)
-        {
-          calCurrent = 12.0;
-          boxFlag[motorNum] = true;
-        }
-        else
-        {
-          calCurrent = 2.0;
-          delay(50);
-        }
-      }
-    }
-    return calCurrent;
-  }
-}
-
-float currentHapticsVibration(float linearPosition, float lastCurrent, int mode)
-{
-  float current = 2.0;
-  if(linearPosition > (0.0 + linearHist)) return 0.0;
-  else if(linearPosition < (0.0 - linearHist))
-  {
-    float calCurrent;
-    if (linearPosition > (0.0 - linearHist - rampControlThreshold))
-    {
-      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
-      //Serial.println(calCurrent);
-    } 
-    else 
-    {
-      int dly = (int)((-(linearPosition + linearHist + rampControlThreshold) /50.0)*100.0);
-      //Serial << dly << '\n';
-      //Serial << linearPosition << ' ' << threshold << '\n';
-      if (lastCurrent == 2.0) 
-      {
-        if(mode == 1) {
-          delay(dly);
-          calCurrent = 10.0;
-        }
-        else calCurrent = 8.0;
-      }
-      else
-      {
-        if(mode == 1) {
-          delay(dly);
-          calCurrent = 2.0;
-        }
-        else calCurrent = 2.0;
-      }
-    }
-    return calCurrent;
   }
 }
