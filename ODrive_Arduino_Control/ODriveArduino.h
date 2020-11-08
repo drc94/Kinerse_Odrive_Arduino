@@ -1,8 +1,6 @@
 #ifndef ODriveArduino_h
 #define ODriveArduino_h
 
-#include "Arduino.h"
-
 class ODriveArduino {
 public:
     enum AxisState_t {
