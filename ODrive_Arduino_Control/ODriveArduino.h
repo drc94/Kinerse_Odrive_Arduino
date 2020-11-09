@@ -41,7 +41,7 @@ private:
     Stream& serial_;
 };
 
-void initCalibration(ODriveArduino odrive);
-float initPosition(ODriveArduino odrive, int motor);
+void initCalibration(ODriveArduino* odrive);
+float initPosition(ODriveArduino* odrive, int motor);
 
 #endif //ODriveArduino_h

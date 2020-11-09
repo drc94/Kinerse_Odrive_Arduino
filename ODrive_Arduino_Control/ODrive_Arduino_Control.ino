@@ -43,8 +43,8 @@ void setup() {
   }
 
   delay(2000);  //Espera para empezar a calibrar el motor automáticamente
-  initCalibration(odrive); //Secuencia de calibración de motores
-  posOffset[0] = initPosition(odrive, 0); //Inicializa posición motor 0 
+  initCalibration(&odrive); //Secuencia de calibración de motores
+  posOffset[0] = initPosition(&odrive, 0); //Inicializa posición motor 0 
   //initPosition(odrive, 1); //Inicializa posición motor 1
 
   Serial.println("Ready!");
@@ -64,17 +64,30 @@ void loop() {
 
   linearPosition[0] = 2*PI*2*(odrive.GetPosition(0)/4000) - posOffset[0]; //2cm radio, 2pi = 4000 counts
   linearPosition[1] = 2*PI*2*(odrive.GetPosition(1)/4000) - posOffset[1]; //2cm radio, 2pi = 4000 counts
-  if(motorMode == 1) {
+  if(motorMode == 1) { //Boxing
     currentControl(currentHapticsBox(linearPosition[0],0), lastCurrentValue[0],0);
     currentControl(currentHapticsBox(linearPosition[1],1), lastCurrentValue[1],1);
   }
-  else if(motorMode == 2){
+  else if(motorMode == 2){ //Vibration
     currentControl(currentHapticsVibration(linearPosition[0], lastCurrentValue[0], 0), lastCurrentValue[0],0);
     currentControl(currentHapticsVibration(linearPosition[1], lastCurrentValue[1], 0), lastCurrentValue[1],1);
   }  
-  else if(motorMode == 3){
+  else if(motorMode == 3){ //Vibration ramp
     currentControl(currentHapticsVibration(linearPosition[0], lastCurrentValue[0], 1), lastCurrentValue[0],0);
     currentControl(currentHapticsVibration(linearPosition[1], lastCurrentValue[1], 1), lastCurrentValue[1],1);
+  }
+  else if(motorMode == 4){ //Friend mode
+    currentControl(currentFriend(linearPosition[0], 50.0, 100.0, odrive.GetVelocity(0), currentControlValue(linearPosition[0], current[0]), 0), lastCurrentValue[0], 0);
+    currentControl(currentFriend(linearPosition[1], 50.0, 100.0, odrive.GetVelocity(1), currentControlValue(linearPosition[1], current[1]), 1), lastCurrentValue[1], 1);
+    /*Serial.print(value2);
+    Serial.print(' ');
+    Serial.print(value);
+    Serial.print(' ');
+    Serial.print(lastCurrentValue[0]);
+    Serial.print(' ');
+    Serial.print(-odrive.GetVelocity(0));
+    Serial.print(' ');
+    Serial.println(-linearPosition[0]);*/
   }
   else {
     currentControl(currentControlValue(linearPosition[0], current[0]), lastCurrentValue[0],0);

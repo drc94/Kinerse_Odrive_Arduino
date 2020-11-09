@@ -119,18 +119,20 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posO
           command = command + char(d);
         }
         
-        if(command.toInt() > 3) Serial << "Command error" << '\n';
+        if(command.toInt() > 4) Serial << "Command error" << '\n';
         else
         {
           *motorMode  = command.toInt();
           if(*motorMode == 1) Serial << "BOXING MODE" << '\n';
           if(*motorMode == 2) Serial << "VIBRATION MODE 1" << '\n';
           if(*motorMode == 3) Serial << "VIBRATION MODE 2" << '\n';
+          if(*motorMode == 4) Serial << "FRIEND MODE" << '\n';
         }
       }
       else
       {
         Serial << "Command error" << '\n';
+        *motorMode  = 0;
       }
     }
   }

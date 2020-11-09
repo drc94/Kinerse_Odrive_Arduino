@@ -118,3 +118,68 @@ float currentHapticsVibration(float linearPosition, float lastCurrent, int mode)
     return calCurrent;
   }
 }
+
+
+bool downDir(float linearPosition, float initPos, float finalPos, float velocity, int motorNum)
+{
+  static bool dir[2];
+  if(((-linearPosition) <= initPos)&&(((-velocity) >= 100)))
+  {
+    dir[motorNum] = false;
+  }
+  else 
+  {
+    if((-linearPosition) >= finalPos) dir[motorNum] = true;
+    //else{}
+  }
+  /*Serial.print(" dir ");
+  Serial.print(dir);*/
+  return dir[motorNum];
+}
+
+bool flagFriend(bool downDir, float linearPosition, float initPos, float finalPos, float vel, int motorNum)
+{
+  static bool flag[2];
+  if(downDir == false)
+  {
+    if(((-vel) <= 50) && ((-linearPosition) >= initPos*1.2)) flag[motorNum] = true;
+    //else{}
+  }
+  else flag[motorNum] = false;
+  
+  return flag[motorNum];
+}
+
+//Función para ayudar al entrenamiento al fallo
+//Inputs:
+//  float linearPosition: Posición lineal (en cm)
+//  float initPos: Posición inicial (en cm)
+//  float finalPos: Posición final del ejercicio (en cm)
+//  float velocity: Velocidad actual (cm/s)
+//  float currentSetpoint: Corriente objetivo (A)
+//Output:
+//  float currentFriend: Valor de corriente resultante (en A)
+float currentFriend(float linearPosition, float initPos, float finalPos, float velocity, float currentSetpoint, int motorNum)
+{ 
+  float outputCurrent;
+  bool downDirBool = downDir(linearPosition, initPos, finalPos, velocity, motorNum);
+  bool flagFriendBool = flagFriend(downDirBool, linearPosition, initPos, finalPos, velocity, motorNum);
+  if((-linearPosition) >= (initPos*0.8))
+  {
+    if(flagFriendBool == true)
+    {
+      outputCurrent = currentSetpoint*0.75;
+    }
+    else
+    {
+      outputCurrent = currentSetpoint;
+    }
+  }
+  else
+  {
+    outputCurrent = 1;
+  }
+  //Serial.print(" current ");
+  //Serial.println(outputCurrent);
+  return outputCurrent;
+}
