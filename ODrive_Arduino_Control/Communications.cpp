@@ -1,11 +1,23 @@
 #include "Arduino.h"
 #include "Communications.h"
+#include "BluetoothSerial.h"
+
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
+#endif
+
+BluetoothSerial SerialBT;
 
 // Printing with stream operator
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
 #define currentLimit 20.0               //Límite de corriente
+
+void initBT()
+{
+  SerialBT.begin("KINERSE"); 
+}
 
 int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posOffset, float* linearPosition)
 {
@@ -92,7 +104,6 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posO
 
     // Read bus voltage
     if (c == 'b') {
-      Serial2 << "r vbus_voltage\n";
       delay(500);
       Serial << "Vbus voltage: " << odrive->readFloat() << "V" << '\n';
     }
@@ -140,16 +151,16 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posO
 
 int serialBT(ODriveArduino* odrive, int* motorMode, float* current, float* posOffset, float* linearPosition)
 {
-  if(Serial3.available()){
+  if(SerialBT.available()){
     delay(10);
-    char c = Serial3.read();
+    char c = SerialBT.read();
 
     // Run calibration sequence
     if (c == '0' || c == '1') {
       int motornum = c-'0';
       int requested_state;
 
-      Serial3 << "CAL MOT ";
+      SerialBT << "CAL MOT ";
 
       requested_state = ODriveArduino::AXIS_STATE_MOTOR_CALIBRATION;
       //Serial << "Axis" << c << ": Requesting state " << requested_state << '\n';
@@ -167,36 +178,36 @@ int serialBT(ODriveArduino* odrive, int* motorMode, float* current, float* posOf
     // Current mode
     if (c == 'c') {
       //Serial << "Current control mode: ";
-      char d = Serial3.read();
+      char d = SerialBT.read();
       String command = "";
       *motorMode = 0;
       if(isWhitespace(d))
       {
-        if(Serial3.available()) d = Serial3.read();
+        if(SerialBT.available()) d = SerialBT.read();
         command = command + char(d);
-        while(!isWhitespace(d) && Serial3.available())
+        while(!isWhitespace(d) && SerialBT.available())
         {
-          d = Serial3.read();
+          d = SerialBT.read();
           command = command + char(d);
         }
         *current = command.toFloat();
         *(current+1) = *current;
-        if((*current > currentLimit) || (*current < 0.0)) Serial3 << "OC ERROR";
+        if((*current > currentLimit) || (*current < 0.0)) SerialBT << "OC ERROR";
         else
         {
-          Serial3 << "CURRENT ";
+          SerialBT << "CURRENT ";
           //odrive.SetCurrent(0, current);
         }
       }
       else
       {
-        Serial3 << "CM ERROR";
+        SerialBT << "CM ERROR";
       }
     }
 
     // Stop motor
     if (c == 's') {
-       Serial3 << "MOT STOP";
+       SerialBT << "MOT STOP";
       int requested_state;
       requested_state = ODriveArduino::AXIS_STATE_IDLE;
       odrive->run_state(0, requested_state, false);
@@ -206,7 +217,7 @@ int serialBT(ODriveArduino* odrive, int* motorMode, float* current, float* posOf
 
     // Loop control
     if (c == 'l') {
-      Serial3 << "LOOP CON";
+      SerialBT << "LOOP CON";
       int requested_state;
       requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
       odrive->run_state(0, requested_state, false); // don't wait
@@ -216,30 +227,30 @@ int serialBT(ODriveArduino* odrive, int* motorMode, float* current, float* posOf
 
      // Haptics mode
     if (c == 'h') {
-      char d = Serial3.read();
+      char d = SerialBT.read();
       String command = "";
       if(isWhitespace(d))
       {
-        if(Serial3.available()) d = Serial3.read();
+        if(SerialBT.available()) d = SerialBT.read();
         command = command + char(d);
-        while(!isWhitespace(d) && Serial3.available())
+        while(!isWhitespace(d) && SerialBT.available())
         {
-          d = Serial3.read();
+          d = SerialBT.read();
           command = command + char(d);
         }
         
-        if(command.toInt() > 3) Serial3 << "CM ERROR" << '\n';
+        if(command.toInt() > 3) SerialBT << "CM ERROR" << '\n';
         else
         {
           *motorMode  = command.toInt();
-          if(*motorMode == 1) Serial3 << "BOXING  ";
-          if(*motorMode == 2) Serial3 << "VIBRAT 1";
-          if(*motorMode == 3) Serial3 << "VIBRAT 2";
+          if(*motorMode == 1) SerialBT << "BOXING  ";
+          if(*motorMode == 2) SerialBT << "VIBRAT 1";
+          if(*motorMode == 3) SerialBT << "VIBRAT 2";
         }
       }
       else
       {
-        Serial3 << "CM ERROR";
+        SerialBT << "CM ERROR";
       }
     }
   }
