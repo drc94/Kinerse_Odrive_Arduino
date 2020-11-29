@@ -44,8 +44,8 @@ void setup() {
 
   delay(2000);  //Espera para empezar a calibrar el motor automáticamente
   initCalibration(&odrive); //Secuencia de calibración de motores
-  posOffset[0] = initPosition(&odrive, 0); //Inicializa posición motor 0 
-  //initPosition(odrive, 1); //Inicializa posición motor 1
+  posOffset[0] = initPosition(&odrive, 0); //Inicializa posición motor 0  (invertido)
+  //posOffset[1] = initPosition(odrive, 1); //Inicializa posición motor 1
 
   Serial.println("Ready!");
   Serial.println("Send the character '0' or '1' to calibrate respective motor (you must do this before you can command movement)");
@@ -62,7 +62,7 @@ void loop() {
   serialCOM(&odrive, &motorMode, &current[0], &posOffset[0], &linearPosition[0]);   //Gestiona las comunicaciones entre el PC y el arduino a través del puerto serie 1
   serialBT(&odrive, &motorMode, &current[0], &posOffset[0], &linearPosition[0]);    //Gestiona las comunicaciones entre el módulo BT y el arduino a través del puerto serie 3
 
-  linearPosition[0] = 2*PI*2*(odrive.GetPosition(0)/4000) - posOffset[0]; //2cm radio, 2pi = 4000 counts
+  linearPosition[0] = -(2*PI*2*(odrive.GetPosition(0)/4000) - posOffset[0]); //2cm radio, 2pi = 4000 counts
   linearPosition[1] = 2*PI*2*(odrive.GetPosition(1)/4000) - posOffset[1]; //2cm radio, 2pi = 4000 counts
   if(motorMode == 1) { //Boxing
     currentControl(currentHapticsBox(linearPosition[0],0), lastCurrentValue[0],0);
@@ -101,7 +101,8 @@ void currentControl(float current, float lastCurrent, int motorNum)
 {
   if(current != lastCurrent) 
   {
-    odrive.SetCurrent(motorNum, current);
+    if(motorNum == 0) odrive.SetCurrent(motorNum, -current);
+    else odrive.SetCurrent(motorNum, current);
     //Serial.println(current);
     lastCurrentValue[motorNum] = current;
   }

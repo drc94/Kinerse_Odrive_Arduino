@@ -111,18 +111,36 @@ float initPosition(ODriveArduino* odrive, int motor){
   float pos_offset = 0;
   int requested_state = ODriveArduino::AXIS_STATE_CLOSED_LOOP_CONTROL;
   odrive->run_state(motor, requested_state, false); // don't wait
-  odrive->SetVelocity(motor, 2000.0, 3.0);
-  delay(500);
-  while(odrive->GetVelocity(motor) > 100.0);
-  pos_offset = 2*PI*2*(odrive->GetPosition(motor)/4000);  
-  delay(200);
-  odrive->SetCurrent(motor, 2.0);
-  delay(500);
-  odrive->SetCurrent(motor, 1.0);
-  delay(500);
-  odrive->SetCurrent(motor, 0.5);
-  delay(500);
-  odrive->SetCurrent(motor, 0.0);
+  if(motor == 0)
+  {
+    odrive->SetVelocity(motor, -2000.0, -3.0);
+    delay(500);
+    while(odrive->GetVelocity(motor) < -100.0);
+    pos_offset = 2*PI*2*(odrive->GetPosition(motor)/4000);  
+    delay(200);
+    odrive->SetCurrent(motor, -2.0);
+    delay(500);
+    odrive->SetCurrent(motor, -1.0);
+    delay(500);
+    odrive->SetCurrent(motor, -0.5);
+    delay(500);
+    odrive->SetCurrent(motor, -0.0);
+  }
+  else
+  {
+    odrive->SetVelocity(motor, 2000.0, 3.0);
+    delay(500);
+    while(odrive->GetVelocity(motor) > 100.0);
+    pos_offset = 2*PI*2*(odrive->GetPosition(motor)/4000);  
+    delay(200);
+    odrive->SetCurrent(motor, 2.0);
+    delay(500);
+    odrive->SetCurrent(motor, 1.0);
+    delay(500);
+    odrive->SetCurrent(motor, 0.5);
+    delay(500);
+    odrive->SetCurrent(motor, 0.0);
+  }
   //delay(200);
   //odrive->SetVelocity(motor, 20000.0, 0.0);
   delay(200);
