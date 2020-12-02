@@ -1,4 +1,4 @@
-float currentHapticsVibration(float linearPosition, float lastCurrent, int mode);
-float currentHapticsBox(float linearPosition, int motorNum);
-float currentControlValue(float linearPosition, float current);
-float currentFriend(float linearPosition, float initPos, float finalPos, float velocity, float currentSetpoint, int motorNum);
+float torqueHapticsVibration(float linearPosition, float lastTorque, int mode);
+float torqueHapticsBox(float linearPosition, int motorNum);
+float torqueControlValue(float linearPosition, float torque);
+float torqueFriend(float linearPosition, float initPos, float finalPos, float velocity, float torqueSetpoint, int motorNum);

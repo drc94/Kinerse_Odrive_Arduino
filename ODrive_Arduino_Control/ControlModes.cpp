@@ -9,23 +9,23 @@ bool boxFlag[2] = {false, false};
 //Función control de corriente (control de torque): Regula la corriente para aplicar el torque suavemente en el inicio.
 //Inputs:
 //  float linearPosition: Posición lineal (en cm)
-//  float current: Corriente configurada (en A)
+//  float torque: Corriente configurada (en A)
 //Output:
-//  float currentControlValue: Valor de corriente resultante (en A)
-float currentControlValue(float linearPosition, float current)
+//  float torqueControlValue: Valor de corriente resultante (en A)
+float torqueControlValue(float linearPosition, float torque)
 {
   if(linearPosition > (0.0 + linearHist)) return 0.0;
   else if(linearPosition < (0.0 - linearHist))
   {
-    float calCurrent;
+    float calTorque;
     if (linearPosition > (0.0 - linearHist - rampControlThreshold))
     {
-      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
-      //Serial.println(calCurrent);
+      calTorque = torque*(-(linearPosition + linearHist)/rampControlThreshold); 
+      //Serial.println(calTorque);
     } 
-    else calCurrent = current;
-    //Serial << calCurrent << '\n';
-    return calCurrent;
+    else calTorque = torque;
+    //Serial << calTorque << '\n';
+    return calTorque;
   }
 }
 
@@ -34,88 +34,88 @@ float currentControlValue(float linearPosition, float current)
 //  float linearPosition: Posición lineal (en cm)
 //  float motorNum: Número de motor
 //Output:
-//  float currentHapticsBox: Valor de corriente resultante (en A)
-float currentHapticsBox(float linearPosition, int motorNum)
+//  flott corqueHapticsBox: Valor de corriente resultante (en A)
+float torqueHapticsBox(float linearPosition, int motorNum)
 {
-  float current = 2.0;
+  float torque = 0.167;
   float threshold = -110.0;
   if(linearPosition > (0.0 + linearHist)) return 0.0;
   else if(linearPosition < (0.0 - linearHist))
   {
-    float calCurrent;
+    float calTorque;
     if (linearPosition > (0.0 - linearHist - rampControlThreshold))
     {
-      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
-      //Serial.println(calCurrent);
+      calTorque = torque*(-(linearPosition + linearHist)/rampControlThreshold); 
+      //Serial.println(calTorque);
     } 
     else 
     {
       //Serial << linearPosition << ' ' << threshold << '\n';
       if (linearPosition > threshold)
       {
-        calCurrent = 2.0;
+        calTorque = 0.167;
         boxFlag[motorNum] = false;
       }
       else
       {
         if(boxFlag[motorNum] == false)
         {
-          calCurrent = 12.0;
+          calTorque = 1.6;
           boxFlag[motorNum] = true;
         }
         else
         {
-          calCurrent = 2.0;
+          calTorque = 0.167;
           delay(50);
         }
       }
     }
-    return calCurrent;
+    return calTorque;
   }
 }
 
 //Función para provocar vibración
 //Inputs:
 //  float linearPosition: Posición lineal (en cm)
-//  float lastCurrent: Corriente configurada en el ciclo anterior (en A)
+//  float lastTorque: Corriente configurada en el ciclo anterior (en A)
 //  int mode: Modo actual de control
 //Output:
-//  float currentHapticsVibration: Valor de corriente resultante (en A)
-float currentHapticsVibration(float linearPosition, float lastCurrent, int mode)
+//  float torqueHapticsVibration: Valor de corriente resultante (en A)
+float torqueHapticsVibration(float linearPosition, float lastTorque, int mode)
 {
-  float current = 2.0;
+  float torque = 0.167;
   if(linearPosition > (0.0 + linearHist)) return 0.0;
   else if(linearPosition < (0.0 - linearHist))
   {
-    float calCurrent;
+    float calTorque;
     if (linearPosition > (0.0 - linearHist - rampControlThreshold))
     {
-      calCurrent = current*(-(linearPosition + linearHist)/rampControlThreshold); 
-      //Serial.println(calCurrent);
+      calTorque = torque*(-(linearPosition + linearHist)/rampControlThreshold); 
+      //Serial.println(calTorque);
     } 
     else 
     {
       int dly = (int)((-(linearPosition + linearHist + rampControlThreshold) /50.0)*100.0);
       //Serial << dly << '\n';
       //Serial << linearPosition << ' ' << threshold << '\n';
-      if (lastCurrent == 2.0) 
+      if (lastTorque == 0.167) 
       {
         if(mode == 1) {
           delay(dly);
-          calCurrent = 10.0;
+          calTorque = 0.83;
         }
-        else calCurrent = 8.0;
+        else calTorque = 0.67;
       }
       else
       {
         if(mode == 1) {
           delay(dly);
-          calCurrent = 2.0;
+          calTorque = 0.167;
         }
-        else calCurrent = 2.0;
+        else calTorque = 0.167;
       }
     }
-    return calCurrent;
+    return calTorque;
   }
 }
 
@@ -123,7 +123,7 @@ float currentHapticsVibration(float linearPosition, float lastCurrent, int mode)
 bool downDir(float linearPosition, float initPos, float finalPos, float velocity, int motorNum)
 {
   static bool dir[2];
-  if(((-linearPosition) <= initPos)&&(((-velocity) >= 100)))
+  if(((-linearPosition) <= initPos)&&(((-velocity) >= 0.2)))
   {
     dir[motorNum] = false;
   }
@@ -142,7 +142,7 @@ bool flagFriend(bool downDir, float linearPosition, float initPos, float finalPo
   static bool flag[2];
   if(downDir == false)
   {
-    if(((-vel) <= 50) && ((-linearPosition) >= initPos*1.2)) flag[motorNum] = true;
+    if(((-vel) <= 0.1) && ((-linearPosition) >= initPos*1.2)) flag[motorNum] = true;
     //else{}
   }
   else flag[motorNum] = false;
@@ -156,30 +156,30 @@ bool flagFriend(bool downDir, float linearPosition, float initPos, float finalPo
 //  float initPos: Posición inicial (en cm)
 //  float finalPos: Posición final del ejercicio (en cm)
 //  float velocity: Velocidad actual (cm/s)
-//  float currentSetpoint: Corriente objetivo (A)
+//  float torqueSetpoint: Corriente objetivo (A)
 //Output:
-//  float currentFriend: Valor de corriente resultante (en A)
-float currentFriend(float linearPosition, float initPos, float finalPos, float velocity, float currentSetpoint, int motorNum)
+//  float torqueFriend: Valor de corriente resultante (en A)
+float torqueFriend(float linearPosition, float initPos, float finalPos, float velocity, float torqueSetpoint, int motorNum)
 { 
-  float outputCurrent;
+  float outputTorque;
   bool downDirBool = downDir(linearPosition, initPos, finalPos, velocity, motorNum);
   bool flagFriendBool = flagFriend(downDirBool, linearPosition, initPos, finalPos, velocity, motorNum);
   if((-linearPosition) >= (initPos*0.8))
   {
     if(flagFriendBool == true)
     {
-      outputCurrent = currentSetpoint*0.75;
+      outputTorque = torqueSetpoint*0.75;
     }
     else
     {
-      outputCurrent = currentSetpoint;
+      outputTorque = torqueSetpoint;
     }
   }
   else
   {
-    outputCurrent = 1;
+    outputTorque = 0.8; //(Nm)
   }
-  //Serial.print(" current ");
-  //Serial.println(outputCurrent);
-  return outputCurrent;
+  //Serial.print(" torque ");
+  //Serial.println(output);
+  return outputTorque;
 }

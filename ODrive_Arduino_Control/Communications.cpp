@@ -5,9 +5,9 @@
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
-#define currentLimit 20.0               //Límite de corriente
+float const torqueLimit = 2.2;
 
-int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posOffset, float* linearPosition)
+int serialCOM(ODriveArduino* odrive, int* motorMode, float* torque, float* posOffset, float* linearPosition)
 {
   if (Serial.available()) {
     delay(10);
@@ -31,9 +31,9 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posO
       odrive->run_state(motornum, requested_state, false); // don't wait
     }
 
-    // Current mode
+    // Torque mode
     if (c == 'c') {
-      Serial << "Current control mode: ";
+      Serial << "Torque control mode: ";
       char d = Serial.read();
       String command = "";
       *motorMode = 0;
@@ -46,13 +46,13 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posO
           d = Serial.read();
           command = command + char(d);
         }
-        *current = command.toFloat();
-        *(current+1) = *current;
-        if((*current > currentLimit) || (*current < 0.0)) Serial << "Overcurrent error" << '\n';
+        *torque = command.toFloat();
+        *(torque+1) = *torque;
+        if((*torque > torqueLimit) || (*torque < 0.0)) Serial << "Overcurrent error" << '\n';
         else
         {
-          Serial << "Current = " << *current << "A" << '\n';
-          //odrive.SetCurrent(0, current);
+          Serial << "Torque = " << *torque << "Nm" << '\n';
+          //odrive.SetTorque(0, torque);
         }
       }
       else
@@ -84,9 +84,9 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posO
     // Encoder offset calibration
     if (c == 'e') {
       int requested_state;
-      *posOffset = 2*PI*2*(odrive->GetPosition(0)/4000);
+      *posOffset = 2*PI*2*(odrive->GetPosition(0));
       delay(100);
-      *(posOffset+1) = 2*PI*2*(odrive->GetPosition(1)/4000);
+      *(posOffset+1) = 2*PI*2*(odrive->GetPosition(1));
       Serial.println("Set home position");
     }
 
@@ -138,7 +138,7 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* current, float* posO
   }
 }
 
-int serialBT(ODriveArduino* odrive, int* motorMode, float* current, float* posOffset, float* linearPosition)
+int serialBT(ODriveArduino* odrive, int* motorMode, float* torque, float* posOffset, float* linearPosition)
 {
   if(Serial3.available()){
     delay(10);
@@ -164,9 +164,9 @@ int serialBT(ODriveArduino* odrive, int* motorMode, float* current, float* posOf
       odrive->run_state(motornum, requested_state, false); // don't wait
     }
 
-    // Current mode
+    // Torque mode
     if (c == 'c') {
-      //Serial << "Current control mode: ";
+      //Serial << "Torque control mode: ";
       char d = Serial3.read();
       String command = "";
       *motorMode = 0;
@@ -179,13 +179,13 @@ int serialBT(ODriveArduino* odrive, int* motorMode, float* current, float* posOf
           d = Serial3.read();
           command = command + char(d);
         }
-        *current = command.toFloat();
-        *(current+1) = *current;
-        if((*current > currentLimit) || (*current < 0.0)) Serial3 << "OC ERROR";
+        *torque = command.toFloat();
+        *(torque+1) = *torque;
+        if((*torque > torqueLimit) || (*torque < 0.0)) Serial3 << "OC ERROR";
         else
         {
-          Serial3 << "CURRENT ";
-          //odrive.SetCurrent(0, current);
+          Serial3 << "TORQUE  ";
+          //odrive.SetTorque(0, torque);
         }
       }
       else
