@@ -24,6 +24,7 @@ int motorMode = 0;                      //Modo del motor
 ODriveArduino odrive(Serial2);
 
 void setup() {
+  delay(4000);  //Espera para empezar a calibrar el motor automáticamente
   // Serial to the ODrive
   // ODrive uses 115200 baud
   Serial2.begin(115200);
@@ -41,21 +42,25 @@ void setup() {
   // In this example we set the same parameters to both motors.
   // You can of course set them different if you want.
   // See the documentation or play around in odrivetool to see the available parameters
-  /*for (int axis = 0; axis < 2; ++axis) {
-    Serial2 << "w axis" << axis << ".controller.config.vel_limit " << velLimit << '\n';
-    Serial2 << "w axis" << axis << ".motor.config.current_lim " << currentLimit << '\n';*/
+  for (int axis = 0; axis < 2; ++axis) {
+    Serial2 << "w axis" << axis << ".controller.config.vel_limit " << 10.0 << '\n';
+    Serial2 << "w axis" << axis << ".motor.config.current_lim " << currentLimit << '\n';
   /*  Serial2 << "w axis" << axis << ".config.brake_resistance " << brakeRes << '\n';
     Serial2 << "w axis" << axis << ".config.pole_pairs " << polePairs << '\n';
     Serial2 << "w axis" << axis << ".motor.config.torque_constant " << torqueConstant << '\n';
     Serial2 << "w axis" << axis << ".encoder.config.cpr " << cpr << '\n';
     Serial2 << "w axis" << axis << ".motor.config.calibration_current " << calCurrent << '\n';
-    // This ends up writing something like "w axis0.motor.config.current_lim 10.0\n"
-  }*/
+    // This ends up writing something like "w axis0.motor.config.current_lim 10.0\n"*/
+  }
 
-  delay(2000);  //Espera para empezar a calibrar el motor automáticamente
-  //initCalibration(&odrive); //Secuencia de calibración de motores NO NECESARIO
+  delay(1000);  //Espera para empezar a calibrar el motor automáticamente
+  initCalibration(&odrive); //Secuencia de calibración de motores NO NECESARIO
   posOffset[0] = initPosition(&odrive, 0); //Inicializa posición motor 0  (invertido)
   //posOffset[1] = initPosition(odrive, 1); //Inicializa posición motor 1
+  delay(1000);
+  for (int axis = 0; axis < 2; ++axis) {
+    Serial2 << "w axis" << axis << ".controller.config.vel_limit " << velLimit << '\n';
+  }
 
   Serial.println("Ready!");
   Serial.println("Send the character '0' or '1' to calibrate respective motor (you must do this before you can command movement)");
