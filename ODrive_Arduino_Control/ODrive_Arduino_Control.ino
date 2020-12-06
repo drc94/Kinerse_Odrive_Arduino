@@ -10,7 +10,8 @@ const float currentLimit = 24.0;              //Límite de corriente
 const float calCurrent = 10.0;              //Corriente de calibración
 const float velLimit = 50.0;               //turns/s
 const float brakeRes = 1.7;                   //Resistencia de disipación
-const float polePairs = 20.0;                         //Polos del motor
+const float polePairs_0 = 20.0;                         //Polos del motor 0
+const float polePairs_1 = 21.0;                         //Polos del motor 1
 const float torqueConstant = 0.0827;                   //Resistencia de disipación
 const float cpr = 4000.0;                         // CPR del encoder
 
@@ -54,9 +55,9 @@ void setup() {
   }
 
   delay(1000);  //Espera para empezar a calibrar el motor automáticamente
-  initCalibration(&odrive); //Secuencia de calibración de motores NO NECESARIO
+  initCalibration(&odrive); //Secuencia de calibración de motores 
   posOffset[0] = initPosition(&odrive, 0); //Inicializa posición motor 0  (invertido)
-  //posOffset[1] = initPosition(odrive, 1); //Inicializa posición motor 1
+  posOffset[1] = initPosition(&odrive, 1); //Inicializa posición motor 1
   delay(1000);
   for (int axis = 0; axis < 2; ++axis) {
     Serial2 << "w axis" << axis << ".controller.config.vel_limit " << velLimit << '\n';

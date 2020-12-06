@@ -2,7 +2,7 @@
 #include "ControlModes.h"
 
 #define linearHist 2.0            //Histéresis para evitar rebotes (cm)
-#define rampControlThreshold 5.0  //Umbral inicial para aplicar un control de rampa (inicio suave)
+#define rampControlThreshold 10.0  //Umbral inicial para aplicar un control de rampa (inicio suave)
 
 bool boxFlag[2] = {false, false};
 

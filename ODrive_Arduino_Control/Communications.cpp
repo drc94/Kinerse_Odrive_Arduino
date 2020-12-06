@@ -5,7 +5,11 @@
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
-float const torqueLimit = 2.2;
+const float torqueLimit = 2.2;
+const float radius = 0.02;                  //pulley radius
+const float gravity = 9.78;
+const float ratio = 3;
+const float performance = 1;
 
 int serialCOM(ODriveArduino* odrive, int* motorMode, float* torque, float* posOffset, float* linearPosition)
 {
@@ -46,7 +50,7 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* torque, float* posOf
           d = Serial.read();
           command = command + char(d);
         }
-        *torque = command.toFloat();
+        *torque = (command.toFloat() * radius * gravity * performance)/3;
         *(torque+1) = *torque;
         if((*torque > torqueLimit) || (*torque < 0.0)) Serial << "Overcurrent error" << '\n';
         else
@@ -179,12 +183,12 @@ int serialBT(ODriveArduino* odrive, int* motorMode, float* torque, float* posOff
           d = Serial3.read();
           command = command + char(d);
         }
-        *torque = command.toFloat();
+        *torque = (command.toFloat() * radius * gravity * performance)/3;
         *(torque+1) = *torque;
         if((*torque > torqueLimit) || (*torque < 0.0)) Serial3 << "OC ERROR";
         else
         {
-          Serial3 << "TORQUE  ";
+          Serial3 << "WEIGHT  ";
           //odrive.SetTorque(0, torque);
         }
       }
@@ -228,13 +232,14 @@ int serialBT(ODriveArduino* odrive, int* motorMode, float* torque, float* posOff
           command = command + char(d);
         }
         
-        if(command.toInt() > 3) Serial3 << "CM ERROR" << '\n';
+        if(command.toInt() > 4) Serial3 << "CM ERROR" << '\n';
         else
         {
           *motorMode  = command.toInt();
           if(*motorMode == 1) Serial3 << "BOXING  ";
           if(*motorMode == 2) Serial3 << "VIBRAT 1";
           if(*motorMode == 3) Serial3 << "VIBRAT 2";
+          if(*motorMode == 4) Serial3 << "FRIEND  ";
         }
       }
       else

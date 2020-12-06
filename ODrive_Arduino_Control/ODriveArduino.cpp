@@ -113,7 +113,7 @@ float initPosition(ODriveArduino* odrive, int motor){
   odrive->run_state(motor, requested_state, false); // don't wait
   if(motor == 0)
   {
-    odrive->SetVelocity(motor, -3.0, -1.0);
+    odrive->SetVelocity(motor, -3.0, -0.2);
     delay(500);
     while(odrive->GetVelocity(motor) < -0.1);
     pos_offset = 2*PI*2*(odrive->GetPosition(motor));  
@@ -128,7 +128,7 @@ float initPosition(ODriveArduino* odrive, int motor){
   }
   else
   {
-    odrive->SetVelocity(motor, 3.0, 1.0);
+    odrive->SetVelocity(motor, 3.0, 0.2);
     delay(500);
     while(odrive->GetVelocity(motor) > 0.1);
     pos_offset = 2*PI*2*(odrive->GetPosition(motor));  
