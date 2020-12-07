@@ -25,7 +25,7 @@ int motorMode = 0;                      //Modo del motor
 ODriveArduino odrive(Serial2);
 
 void setup() {
-  delay(4000);  //Espera para empezar a calibrar el motor automáticamente
+  delay(1000);  //Espera para empezar a calibrar el motor automáticamente
   // Serial to the ODrive
   // ODrive uses 115200 baud
   Serial2.begin(115200);
@@ -66,7 +66,7 @@ void setup() {
   Serial.println("Ready!");
   Serial.println("Send the character '0' or '1' to calibrate respective motor (you must do this before you can command movement)");
   Serial.println("Send the character 'l' to apply the loop control");
-  Serial.println("Send the character 'c' to enter in torque control mode");
+  Serial.println("Send the character 'c' to enter in torque control mode (select the motor number and digital weight in kg)");
   Serial.println("Send the character 's' to stop motor");
   Serial.println("Send the character 'b' to read bus voltage");
   Serial.println("Send the character 'p' to read linear position");

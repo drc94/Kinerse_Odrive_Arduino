@@ -44,19 +44,29 @@ int serialCOM(ODriveArduino* odrive, int* motorMode, float* torque, float* posOf
       if(isWhitespace(d))
       {
         if(Serial.available()) d = Serial.read();
-        command = command + char(d);
-        while(!isWhitespace(d) && Serial.available())
+        int numMotor = String(d).toInt();
+        if(Serial.available()) d = Serial.read();
+        if(isWhitespace(d))
         {
-          d = Serial.read();
+          if(Serial.available()) d = Serial.read();
           command = command + char(d);
+          while(!isWhitespace(d) && Serial.available())
+          {
+            d = Serial.read();
+            command = command + char(d);
+          }
+          if(numMotor == 0) *torque = (command.toFloat() * radius * gravity * performance)/3;
+          if(numMotor == 1) *(torque+1) = (command.toFloat() * radius * gravity * performance)/3;
+          if((*torque > torqueLimit) || (*torque < 0.0)) Serial << "Overcurrent error" << '\n';
+          else
+          {
+            Serial << "Torque = " << *torque << "Nm" << '\n';
+            //odrive.SetTorque(0, torque);
+          }
         }
-        *torque = (command.toFloat() * radius * gravity * performance)/3;
-        *(torque+1) = *torque;
-        if((*torque > torqueLimit) || (*torque < 0.0)) Serial << "Overcurrent error" << '\n';
         else
         {
-          Serial << "Torque = " << *torque << "Nm" << '\n';
-          //odrive.SetTorque(0, torque);
+          Serial << "Command error" << '\n';
         }
       }
       else
@@ -177,19 +187,28 @@ int serialBT(ODriveArduino* odrive, int* motorMode, float* torque, float* posOff
       if(isWhitespace(d))
       {
         if(Serial3.available()) d = Serial3.read();
-        command = command + char(d);
-        while(!isWhitespace(d) && Serial3.available())
+        int numMotor = String(d).toInt();
+        if(Serial3.available()) d = Serial3.read();
+        if(isWhitespace(d))
         {
-          d = Serial3.read();
+          if(Serial3.available()) d = Serial3.read();
           command = command + char(d);
+          while(!isWhitespace(d) && Serial3.available())
+          {
+            d = Serial3.read();
+            command = command + char(d);
+          }
+          if(numMotor == 0) *torque = (command.toFloat() * radius * gravity * performance)/3;
+          if(numMotor == 1) *(torque+1) = (command.toFloat() * radius * gravity * performance)/3;
+          if((*torque > torqueLimit) || (*torque < 0.0)) Serial3 << "OC ERROR";
+          else
+          {
+            Serial3 << "WEIGHT  ";
+          }
         }
-        *torque = (command.toFloat() * radius * gravity * performance)/3;
-        *(torque+1) = *torque;
-        if((*torque > torqueLimit) || (*torque < 0.0)) Serial3 << "OC ERROR";
         else
         {
-          Serial3 << "WEIGHT  ";
-          //odrive.SetTorque(0, torque);
+          Serial3 << "CM ERROR";
         }
       }
       else
